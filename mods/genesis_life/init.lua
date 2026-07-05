@@ -132,16 +132,29 @@ function Genesis.life.tick()
     end
 end
 
-Genesis.life.create_life_object({
-    type = "agent",
-    species = "human_proto",
-    name = "Agent 1",
-    pos = {x = 0, y = 1, z = 0}
-})
+Genesis.events.on("simulation_started", function(saved_state)
+    if saved_state and saved_state.life then
+        Genesis.life.objects = saved_state.life
+        Genesis.log("Life objects restored from save")
+    else
+        Genesis.life.create_life_object({
+            type = "agent",
+            species = "human_proto",
+            name = "Agent 1",
+            pos = {x = 0, y = 1, z = 0}
+        })
+    end
+end)
 
 Genesis.events.on("tick", function(world)
     if world.tick > 0 and world.tick % 5 == 0 then
         Genesis.life.tick()
+    end
+end)
+
+Genesis.events.on("tick", function(world)
+    if world.tick > 0 and world.tick % 60 == 0 then
+        Genesis.storage.save()
     end
 end)
 
