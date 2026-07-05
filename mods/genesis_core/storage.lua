@@ -16,6 +16,9 @@ function Genesis.storage.collect_state()
         objects = {
             items = Genesis.objects and Genesis.objects.items or {},
             next_id = Genesis.objects and Genesis.objects.next_id or 1
+        },
+        regions = {
+            items = Genesis.regions and Genesis.regions.items or {}
         }
     }
 end
