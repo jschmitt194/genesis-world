@@ -24,7 +24,6 @@ minetest.after(0, function()
     Genesis.start_clock()
 end)
 
-Genesis.start_clock()
 
 minetest.register_on_shutdown(function()
     Genesis.storage.save()

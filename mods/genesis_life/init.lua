@@ -1,21 +1,8 @@
 Genesis = Genesis or {}
 Genesis.life = Genesis.life or {}
-Genesis.life.objects = Genesis.life.objects or {}
 
-local next_id = 1
-
-function Genesis.life.create_life_object(def)
-    local id = next_id
-    next_id = next_id + 1
-
-    local obj = {
-        id = id,
-        type = def.type or "agent",
-        species = def.species or "human_proto",
-        name = def.name or ("Life " .. id),
-
-        pos = def.pos or {x = 0, y = 1, z = 0},
-
+function Genesis.life.default_data()
+    return {
         body = {
             health = 100,
             max_health = 100,
@@ -86,63 +73,95 @@ function Genesis.life.create_life_object(def)
 
         lifecycle = {
             alive = true,
-            born = {year = Genesis.world.year, day = Genesis.world.day},
+            born = {
+                year = Genesis.world.year,
+                day = Genesis.world.day,
+                tick = Genesis.world.tick
+            },
             reproduction_ready = false,
             generation = 1
         }
     }
+end
 
-    Genesis.life.objects[id] = obj
-    Genesis.log("Life object created: " .. obj.name .. " [" .. obj.species .. "]")
+function Genesis.life.create(def)
+    local obj = Genesis.objects.create({
+        object_type = "life",
+        subtype = def.species or "human_proto",
+        name = def.name or "Unnamed Life",
+        pos = def.pos or {x = 0, y = 1, z = 0},
+        data = Genesis.life.default_data()
+    })
+
+    obj.data.life_type = def.type or "agent"
+    obj.data.species = def.species or "human_proto"
+
+    Genesis.log("Life created: " .. obj.name .. " [" .. obj.data.species .. "]")
+    Genesis.events.emit("life_spawned", obj)
+
     return obj
 end
 
-function Genesis.life.update_life_object(obj)
-    if not obj.lifecycle.alive then
+function Genesis.life.update(obj)
+    if not obj.lifecycle.active then
         return
     end
 
-    obj.body.hunger = obj.body.hunger + 0.1
-    obj.body.thirst = obj.body.thirst + 0.15
-    obj.body.energy = obj.body.energy - 0.05
-    obj.body.stamina = math.min(100, obj.body.stamina + 0.1)
+    local data = obj.data
+    local body = data.body
 
-    if obj.body.hunger >= 100 or obj.body.thirst >= 100 then
-        obj.body.health = obj.body.health - 0.5
+    if not data.lifecycle.alive then
+        return
     end
 
-    if obj.body.health <= 0 then
-        obj.body.health = 0
-        obj.lifecycle.alive = false
+    body.hunger = body.hunger + 0.1
+    body.thirst = body.thirst + 0.15
+    body.energy = math.max(0, body.energy - 0.05)
+    body.stamina = math.min(100, body.stamina + 0.1)
+
+    if body.hunger >= 100 or body.thirst >= 100 then
+        body.health = body.health - 0.5
+    end
+
+    if body.health <= 0 then
+        body.health = 0
+        data.lifecycle.alive = false
+        Genesis.objects.destroy(obj.id, "death")
         Genesis.log(obj.name .. " has died")
+        Genesis.events.emit("life_died", obj)
     end
 end
 
 function Genesis.life.tick()
-    for _, obj in pairs(Genesis.life.objects) do
-        Genesis.life.update_life_object(obj)
+    local living = Genesis.objects.find_by_type("life")
+
+    for _, obj in ipairs(living) do
+        Genesis.life.update(obj)
+
+        local body = obj.data.body
 
         Genesis.log(
             obj.name ..
-            " | health=" .. string.format("%.1f", obj.body.health) ..
-            " hunger=" .. string.format("%.1f", obj.body.hunger) ..
-            " thirst=" .. string.format("%.1f", obj.body.thirst) ..
-            " energy=" .. string.format("%.1f", obj.body.energy)
+            " | health=" .. string.format("%.1f", body.health) ..
+            " hunger=" .. string.format("%.1f", body.hunger) ..
+            " thirst=" .. string.format("%.1f", body.thirst) ..
+            " energy=" .. string.format("%.1f", body.energy)
         )
     end
 end
 
 Genesis.events.on("simulation_started", function(saved_state)
-    if saved_state and saved_state.life then
-        Genesis.life.objects = saved_state.life
-        Genesis.log("Life objects restored from save")
-    else
-        Genesis.life.create_life_object({
+    local living = Genesis.objects.find_by_type("life")
+
+    if #living == 0 then
+        Genesis.life.create({
             type = "agent",
             species = "human_proto",
             name = "Agent 1",
             pos = {x = 0, y = 1, z = 0}
         })
+    else
+        Genesis.log("Life restored from object registry: " .. #living .. " living objects")
     end
 end)
 
@@ -158,4 +177,4 @@ Genesis.events.on("tick", function(world)
     end
 end)
 
-Genesis.log("Genesis Life v0.1 loaded")
+Genesis.log("Genesis Life v0.2 loaded")
