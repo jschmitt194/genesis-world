@@ -1,6 +1,7 @@
 local modpath = minetest.get_modpath("genesis_core")
 
 dofile(modpath .. "/world.lua")
+dofile(modpath .. "/config.lua")
 dofile(modpath .. "/logger.lua")
 dofile(modpath .. "/events.lua")
 dofile(modpath .. "/storage.lua")
