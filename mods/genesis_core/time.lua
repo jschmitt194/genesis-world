@@ -24,6 +24,15 @@ function Genesis.advance_time()
     end
 
     Genesis.log("Tick " .. w.tick .. " | " .. Genesis.log_time())
+Genesis.events.emit("tick", w)
+
+if w.minute == 0 then
+    Genesis.events.emit("hour", w)
+end
+
+if w.hour == 0 and w.minute == 0 then
+    Genesis.events.emit("day", w)
+end
 end
 
 function Genesis.start_clock()
