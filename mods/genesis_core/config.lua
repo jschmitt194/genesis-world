@@ -5,9 +5,7 @@ Genesis.config = {
     sea_level = 0,
 
     region_size = 16,
-
     autosave_ticks = 60,
-
     life_tick_interval = 5,
 
     hunger_threshold = 70,
