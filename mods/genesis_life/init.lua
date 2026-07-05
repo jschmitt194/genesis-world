@@ -134,6 +134,10 @@ end
 
 function Genesis.life.tick()
     local living = Genesis.objects.find_by_type("life")
+    for _, obj in ipairs(living) do
+    local region = Genesis.regions.get_at_pos(obj.pos)
+    Genesis.log(obj.name .. " is in region " .. region.key .. " biome=" .. region.biome)
+end
 
     for _, obj in ipairs(living) do
         Genesis.life.update(obj)
