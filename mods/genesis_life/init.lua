@@ -119,6 +119,41 @@ function Genesis.life.update(obj)
     body.energy = math.max(0, body.energy - 0.05)
     body.stamina = math.min(100, body.stamina + 0.1)
 
+        -- Basic survival behavior: drink if thirsty and water exists in region
+    if body.thirst >= 70 then
+        local region = Genesis.regions.get_at_pos(obj.pos)
+
+        if region.resources.water and region.resources.water > 0 then
+            local drink_amount = math.min(10, region.resources.water)
+
+            region.resources.water = region.resources.water - drink_amount
+            region.modified = true
+
+            body.thirst = math.max(0, body.thirst - 25)
+            body.hydration = math.min(100, body.hydration + 25)
+
+            obj.data.memory.resources["water:" .. region.key] = {
+                region = region.key,
+                discovered = {
+                    year = Genesis.world.year,
+                    day = Genesis.world.day,
+                    tick = Genesis.world.tick
+                },
+                confidence = 1.0
+            }
+
+            Genesis.log(obj.name .. " drank water in region " .. region.key)
+            Genesis.events.emit("life_drank_water", {
+                life = obj,
+                region = region,
+                amount = drink_amount
+            })
+        else
+            obj.data.goals.current = "find_water"
+            Genesis.log(obj.name .. " is thirsty and needs water")
+        end
+    end
+
     if body.hunger >= 100 or body.thirst >= 100 then
         body.health = body.health - 0.5
     end
