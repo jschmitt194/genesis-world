@@ -139,9 +139,13 @@ Genesis.life.create_life_object({
     pos = {x = 0, y = 1, z = 0}
 })
 
+local last_life_tick = -1
+
 minetest.register_globalstep(function(dtime)
     local w = Genesis.world
-    if w.tick > 0 and w.tick % 5 == 0 then
+
+    if w.tick > 0 and w.tick % 5 == 0 and w.tick ~= last_life_tick then
+        last_life_tick = w.tick
         Genesis.life.tick()
     end
 end)
