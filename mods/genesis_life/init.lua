@@ -6,32 +6,26 @@ function Genesis.life.default_data()
         body = {
             health = 100,
             max_health = 100,
-
             hunger = 0,
             thirst = 0,
             energy = 100,
             stamina = 100,
             sleep = 0,
-
             temperature = 98.6,
             temperature_min = 95,
             temperature_max = 104,
-
             oxygen = 100,
             hydration = 100,
             nutrition = 100,
-
             strength = 10,
             speed = 10,
             endurance = 10,
             dexterity = 10,
-
             injury = {},
             disease = {},
             age = 0,
             lifespan = 80
         },
-
         senses = {
             vision = 12,
             hearing = 10,
@@ -39,7 +33,6 @@ function Genesis.life.default_data()
             touch = 5,
             taste = 5
         },
-
         mind = {
             intelligence = 10,
             curiosity = 50,
@@ -51,9 +44,7 @@ function Genesis.life.default_data()
             trust = {},
             personality = {}
         },
-
         inventory = {},
-
         memory = {
             places = {},
             events = {},
@@ -61,16 +52,12 @@ function Genesis.life.default_data()
             dangers = {},
             beings = {}
         },
-
         knowledge = {},
-
         goals = {
             current = "survive",
             queue = {}
         },
-
         relationships = {},
-
         lifecycle = {
             alive = true,
             born = {
@@ -82,6 +69,21 @@ function Genesis.life.default_data()
             generation = 1
         }
     }
+end
+
+function Genesis.life.ensure_data(obj)
+    local defaults = Genesis.life.default_data()
+
+    obj.data = obj.data or {}
+    obj.data.body = obj.data.body or defaults.body
+    obj.data.senses = obj.data.senses or defaults.senses
+    obj.data.mind = obj.data.mind or defaults.mind
+    obj.data.inventory = obj.data.inventory or {}
+    obj.data.memory = obj.data.memory or defaults.memory
+    obj.data.memory.resources = obj.data.memory.resources or {}
+    obj.data.knowledge = obj.data.knowledge or {}
+    obj.data.goals = obj.data.goals or defaults.goals
+    obj.data.lifecycle = obj.data.lifecycle or defaults.lifecycle
 end
 
 function Genesis.life.create(def)
@@ -103,23 +105,19 @@ function Genesis.life.create(def)
 end
 
 function Genesis.life.update(obj)
-    if not obj.lifecycle.active then
-        return
-    end
+    Genesis.life.ensure_data(obj)
 
-    local data = obj.data
-    local body = data.body
+    if not obj.lifecycle.active then return end
 
-    if not data.lifecycle.alive then
-        return
-    end
+    local body = obj.data.body
+
+    if not obj.data.lifecycle.alive then return end
 
     body.hunger = body.hunger + 0.1
     body.thirst = body.thirst + 0.15
     body.energy = math.max(0, body.energy - 0.05)
     body.stamina = math.min(100, body.stamina + 0.1)
 
-        -- Basic survival behavior: drink if thirsty and water exists in region
     if body.thirst >= 70 then
         local region = Genesis.regions.get_at_pos(obj.pos)
 
@@ -130,7 +128,7 @@ function Genesis.life.update(obj)
             region.modified = true
 
             body.thirst = math.max(0, body.thirst - 25)
-            body.hydration = math.min(100, body.hydration + 25)
+            body.hydration = math.min(100, (body.hydration or 100) + 25)
 
             obj.data.memory.resources["water:" .. region.key] = {
                 region = region.key,
@@ -142,6 +140,8 @@ function Genesis.life.update(obj)
                 confidence = 1.0
             }
 
+            obj.data.goals.current = nil
+
             Genesis.log(obj.name .. " drank water in region " .. region.key)
             Genesis.events.emit("life_drank_water", {
                 life = obj,
@@ -151,16 +151,43 @@ function Genesis.life.update(obj)
         else
             obj.data.goals.current = "find_water"
             Genesis.log(obj.name .. " is thirsty and needs water")
+
+            local nearby = Genesis.regions.find_near(obj.pos, 1)
+            local target_region = nil
+
+            for _, r in ipairs(nearby) do
+                if r.resources.water and r.resources.water > 0 then
+                    target_region = r
+                    break
+                end
+            end
+
+            if target_region then
+                local target_pos = {
+                    x = target_region.rx * Genesis.regions.size,
+                    y = obj.pos.y,
+                    z = target_region.rz * Genesis.regions.size
+                }
+
+                Genesis.objects.move(obj.id, target_pos)
+                Genesis.log(obj.name .. " moved toward water region " .. target_region.key)
+            else
+                Genesis.log(obj.name .. " found no nearby water")
+            end
         end
     end
 
-    if body.hunger >= 100 or body.thirst >= 100 then
-        body.health = body.health - 0.5
+    if body.hunger >= 100 then
+        body.health = math.max(0, body.health - 0.2)
+    end
+
+    if body.thirst >= 100 then
+        body.health = math.max(0, body.health - 0.4)
     end
 
     if body.health <= 0 then
         body.health = 0
-        data.lifecycle.alive = false
+        obj.data.lifecycle.alive = false
         Genesis.objects.destroy(obj.id, "death")
         Genesis.log(obj.name .. " has died")
         Genesis.events.emit("life_died", obj)
@@ -169,12 +196,13 @@ end
 
 function Genesis.life.tick()
     local living = Genesis.objects.find_by_type("life")
-    for _, obj in ipairs(living) do
-    local region = Genesis.regions.get_at_pos(obj.pos)
-    Genesis.log(obj.name .. " is in region " .. region.key .. " biome=" .. region.biome)
-end
 
     for _, obj in ipairs(living) do
+        Genesis.life.ensure_data(obj)
+
+        local region = Genesis.regions.get_at_pos(obj.pos)
+        Genesis.log(obj.name .. " is in region " .. region.key .. " biome=" .. region.biome)
+
         Genesis.life.update(obj)
 
         local body = obj.data.body
@@ -216,4 +244,4 @@ Genesis.events.on("tick", function(world)
     end
 end)
 
-Genesis.log("Genesis Life v0.2 loaded")
+Genesis.log("Genesis Life v0.3 loaded")

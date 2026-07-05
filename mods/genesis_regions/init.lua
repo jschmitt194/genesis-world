@@ -116,7 +116,7 @@ function Genesis.regions.default_region(rx, rz)
         },
 
         resources = {
-            water = scan.surface.water * 10,
+            water = ((rx == 1 and rz == 0) and 100 or scan.surface.water * 10),
             wood = scan.surface.tree * 5,
             stone = scan.surface.stone * 5,
             food = 10,
