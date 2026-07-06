@@ -85,9 +85,9 @@ function Genesis.navigation.step_toward(obj)
     local ny, ground_node = Genesis.navigation.ground_y_at(nx, nz)
 
     if not ny then
-        Genesis.log(obj.name .. " cannot find ground ahead")
-        Genesis.navigation.clear_target(obj)
-        return false
+        ny = pos.y
+        ground_node = "unknown"
+        Genesis.log(obj.name .. " using current height because ground ahead is not loaded")
     end
 
     local height_delta = ny - pos.y

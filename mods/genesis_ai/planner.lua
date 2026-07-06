@@ -13,6 +13,16 @@ function Genesis.ai.planner.find_resource_region(obj, resource)
 end
 
 function Genesis.ai.planner.plan(obj)
+    local current = Genesis.ai.tasks.get(obj)
+
+    if current then
+        return
+    end
+
+    if Genesis.navigation and Genesis.navigation.has_target(obj) then
+        return
+    end
+
     local need, score = Genesis.ai.needs.top(obj)
 
     if score < 70 then
@@ -23,7 +33,8 @@ function Genesis.ai.planner.plan(obj)
     if need == "water" then
         Genesis.ai.tasks.set(obj, {
             name = "get_water",
-            resource = "water"
+            resource = "water",
+            status = "new"
         })
         return
     end
@@ -31,14 +42,16 @@ function Genesis.ai.planner.plan(obj)
     if need == "food" then
         Genesis.ai.tasks.set(obj, {
             name = "get_food",
-            resource = "food"
+            resource = "food",
+            status = "new"
         })
         return
     end
 
     if need == "rest" then
         Genesis.ai.tasks.set(obj, {
-            name = "rest"
+            name = "rest",
+            status = "new"
         })
         return
     end
@@ -56,6 +69,10 @@ function Genesis.ai.planner.execute(obj)
         return
     end
 
+    if Genesis.navigation and Genesis.navigation.has_target(obj) then
+        return
+    end
+
     local region = Genesis.regions.get_at_pos(obj.pos)
 
     if task.name == "get_water" then
@@ -66,6 +83,7 @@ function Genesis.ai.planner.execute(obj)
 
         local target = Genesis.ai.planner.find_resource_region(obj, "water")
         if target then
+            task.status = "walking"
             Genesis.life.movement.move_to_region(obj, target)
         else
             Genesis.log(obj.name .. " has task get_water but found no water nearby")
@@ -81,6 +99,7 @@ function Genesis.ai.planner.execute(obj)
 
         local target = Genesis.ai.planner.find_resource_region(obj, "food")
         if target then
+            task.status = "walking"
             Genesis.life.movement.move_to_region(obj, target)
         else
             Genesis.log(obj.name .. " has task get_food but found no food nearby")
