@@ -30,7 +30,8 @@ function Genesis.ai.planner.plan(obj)
         return
     end
 
-    if need == "water" then
+        if need == "water" then
+        Genesis.ai.thoughts.add(obj, "I need water.")
         Genesis.ai.tasks.set(obj, {
             name = "get_water",
             resource = "water",
@@ -39,7 +40,8 @@ function Genesis.ai.planner.plan(obj)
         return
     end
 
-    if need == "food" then
+        if need == "food" then
+        Genesis.ai.thoughts.add(obj, "I need food.")
         Genesis.ai.tasks.set(obj, {
             name = "get_food",
             resource = "food",
@@ -48,7 +50,8 @@ function Genesis.ai.planner.plan(obj)
         return
     end
 
-    if need == "rest" then
+        if need == "rest" then
+        Genesis.ai.thoughts.add(obj, "I need rest.")
         Genesis.ai.tasks.set(obj, {
             name = "rest",
             status = "new"
